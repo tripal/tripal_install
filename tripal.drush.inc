@@ -169,7 +169,7 @@ function drush_tripal_install_prepare() {
   //Get all the content types and add the permissions.
   $permissions = array();
   $bundles = array();
-  $conn = pg_pconnect("host=localhost dbname=drupal user=drupal password=drupal");
+  $conn = pg_pconnect("host=$host dbname=$database user=$postgresusername password=$postgrespassword");
   if (!$conn) {
     echo "An error occurred.\n";
     exit;
