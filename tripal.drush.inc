@@ -54,25 +54,6 @@ function tripal_drush_command() {
 /**
  * Implements drush_hook_COMMAND().
  *
- * The command callback is where the action takes place.
- *
- * The function name should be same as command name but with dashes turned to
- * underscores and 'drush_commandfile_' prepended, where 'commandfile' is
- * taken from the file 'commandfile.drush.inc', which in this case is
- * 'sandwich'. Note also that a simplification step is also done in instances
- * where the commandfile name is the same as the beginning of the command name,
- * "drush_example_example_foo" is simplified to just "drush_example_foo".
- * To also implement a hook that is called before your command, implement
- * "drush_hook_pre_example_foo".  For a list of all available hooks for a
- * given command, run drush in --debug mode.
- *
- * If for some reason you do not want your hook function to be named
- * after your command, you may define a 'callback' item in your command
- * object that specifies the exact name of the function that should be
- * called.
- *
- * In this function, all of Drupal's API is (usually) available, including
- * any functions you have added in your own modules/themes.
  *
  * @see drush_invoke()
  * @see drush.api.php
@@ -84,9 +65,10 @@ function drush_tripal_install_prepare() {
   exec('mv drupal-7.56/* ./');
   exec('mv drupal-7.56/.htaccess ./');
 
+  //settings.php input
   $sitename  = drush_prompt(dt('Name of the site: '));
   $siteemail  = drush_prompt(dt('Admin email for the site: '));
-  $username  = drush_prompt(dt('Name admin user: '));
+  $username  = drush_prompt(dt('Name for your admin user on the site: '));
   $userpassword  = drush_prompt(dt('Password for the admin user, needs to be complex including numbers and characters, example P@55w0rd: '));
 
   drush_print(dt(
@@ -95,15 +77,15 @@ function drush_tripal_install_prepare() {
    \n In the end it will look like this:
    \n \$databases['default']['default'] = array(
    \n  'driver' => 'pgsql',
-   \n  'database' => 'drupal2',
-   \n  'username' => 'drupal',
-   \n  'password' => 'drupal',
+   \n  'database' => 'drupal',
+   \n  'username' => 'admin',
+   \n  'password' => 'password123',
    \n  'host' => '127.0.0.1',
    \n   'prefix' => '',
    \n   'port'=> '5433',
    \n);"
   ));
-  $driver = drush_prompt(dt('\'driver\' =>'));
+  $driver = 'pgsql';
   $database = drush_prompt(dt('\'database\' => '));
   $postgresusername = drush_prompt(dt('\'username\' =>'));
   $postgrespassword = drush_prompt(dt('\'password\' => '));
@@ -123,41 +105,41 @@ function drush_tripal_install_prepare() {
     '--site-name='. $sitename
   );
 
+  drush_set_option('username', $username);
+
   drush_invoke_process('@self', 'si', $args, $options);
-
-  /*$drupaldirectory = drush_prompt(dt("\n\n\n Name of the directory that was created with your Drupal installation.
-  This can be quickly found by scrolling up and finding the line that starts with
-  'You are about to create a' within the url listed you will see 'quick-drupal-' and a series of numbers.
-  Grab the entire string, like this 'quick-drupal-20170824111709' "));
-
-  exec('mv '.$drupaldirectory.'/drupal/.htaccess ./');
-  exec('mv '.$drupaldirectory.'/.htaccess ./');
-  exec('mv '.$drupaldirectory.'/drupal/* ./');
-  exec('mv '.$drupaldirectory.'/drupal/sites ./');
-  exec('mv '.$drupaldirectory.'/* ./');*/
-
+  print_r("\n\n\n Downloading modules.\n");
+  //Download modules
   $args = array('field_group', 'field_group_table', 'field_formatter_class', 'field_formatter_settings',
     'ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
     'token', 'tripal-7.x-3.0-rc1', 'uuid', 'jquery_update', 'views', 'webform');
   $options = array();
   drush_invoke_process('@self', 'dl', $args, $options);
-
+  print_r("\n\n\n Enabling modules.\n");
   $args2 = array('ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
     'token', 'uuid', 'jquery_update', 'views', 'webform', 'field_group',
     'field_group_table', 'field_formatter_class', 'field_formatter_settings',
     'views_ui');
   $options2 = array();
-
   drush_invoke_process('@self', 'en', $args2, $options2);
 
+  print_r("\n\n\n Applying patches.\n");
+  //apply patches
+  $currentworkingdirectory = getcwd();
+  exec('wget --no-check-certificate https://drupal.org/files/drupal.pgsql-bytea.27.patch');
+  exec('patch -p1 < drupal.pgsql-bytea.27.patch');
+  chdir($currentworkingdirectory . "/sites/all/modules/views");
+  exec('patch -p1 < ../tripal/tripal_chado_views/views-sql-compliant-three-tier-naming-1971160-30.patch');
+  chdir('.');
+  print_r("\n\n\n Enabling the Tripal related modules.");
   $args3 = array('tripal', 'tripal_chado', 'tripal_ds', 'tripal_ws');
   $options3 = array();
-
   drush_invoke_process('@self', 'en', $args3, $options3);
+
+  print_r("\n\n\n Clear cache.\n");
   drush_invoke_process("@site", "cc", array("all"), array("verbose"));
 
-  drush_set_option('username', $username);
-
+  print_r("\n\n\n Now installing Chado.\n");
   $options = array(
     'Install Chado v1.3' => 'Install Chado v1.3',
     'Install Chado v1.2' => 'Install Chado v1.2',
@@ -176,10 +158,38 @@ function drush_tripal_install_prepare() {
       drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal_chado', 'includes/tripal_chado.install'); tripal_chado_load_drush_submit('Install Chado v1.11');"), array());
     }
   }
-  drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs();"), array());
 
+  drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs_install(" . $username . ");"), array());
+
+  print_r("\n\n\n Now preparing the site by creating content types.\n");
   drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal_chado', 'includes/setup/tripal_chado.setup'); tripal_chado_prepare_drush_submit();"), array());
 
-  drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs();"), array());
+  drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs_install(" . $username . ");"), array());
+  print_r("\n\n\n Adding permissions for the administrator to view, edit, create, and delete all the newly created content types.\n");
+  //Get all the content types and add the permissions.
+  $permissions = array();
+  $bundles = array();
+  $conn = pg_pconnect("host=localhost dbname=drupal user=drupal password=drupal");
+  if (!$conn) {
+    echo "An error occurred.\n";
+    exit;
+  }
+  $result = pg_query($conn, "SELECT name FROM tripal_bundle");
+  if (!$result) {
+    echo "An error occurred.\n";
+    exit;
+  }
+
+  while ($row = pg_fetch_row($result)) {
+    array_push($bundles, $row);
+  }
+  foreach($bundles as $bundles=>$bundle){
+    array_push($permissions, ' view ' . $bundle[0], ' create ' . $bundle[0],
+      ' edit ' . $bundle[0],  ' delete ' . $bundle[0]);
+  }
+  $string_permissions = implode(",", $permissions);
+  $args4 = array('administrator', $string_permissions);
+  $options4 = array();
+  drush_invoke_process('@self', 'role-add-perm', $args4, $options4);
 
 }
