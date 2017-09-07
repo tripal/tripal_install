@@ -28,23 +28,14 @@
  *
  * See `drush topic docs-commands` for a list of recognized keys.
  */
-function tripal_drush_command() {
+function tripal_install_drush_command() {
   $items = array();
   $items['install-prepare'] = array(
     'description' => "Installs Chado and Prepares the Site.",
-    'arguments' => array(
-      'chado-version' => 'Which version of chado should be installed: 1.3, 1.2 or 1.11',
-    ),
-    'options' => array(
-      'version' => array(
-        'description' => 'The Chado version.',
-        'example-value' => '1.3',
-      ),
-    ),
     'examples' => array(
-      'drush tripal-install --version=1.3' => 'Install Chado Version 1.3 and prepare your tripal site.',
+      'drush tripal-generic-install',
     ),
-    'aliases' => array('tripal-install'),
+    'aliases' => array('tripal-generic-install'),
     // No bootstrap at all.
     'bootstrap' => DRUSH_BOOTSTRAP_NONE,
   );
@@ -59,63 +50,103 @@ function tripal_drush_command() {
  * @see drush.api.php
  */
 
-function drush_tripal_install_prepare() {
+function drush_tripal_install_install_prepare() {
+  //install.php input
+  $site_settings = FALSE;
+  while(!$site_settings){
+    $site_name  = drush_prompt(dt('Name of the site: '));
+    //Validate email
+    $valid_email = FALSE;
+    while(!$valid_email){
+      $site_email  = drush_prompt(dt('Admin email for the site: '));
+      if (filter_var($site_email, FILTER_VALIDATE_EMAIL)) {
+        $valid_email = TRUE;
+      }
+      else {
+        drush_print(dt(
+          "\nThis is not a valid email address please re-enter the email address.\n"
+        ));
+      }
+    }
+    $username  = drush_prompt(dt('Name for your admin user on the site: '));
+    $user_password  = drush_prompt(dt('Password for the admin user, needs to be complex including numbers and characters, example P@55w0rd: '));
+    drush_print(dt(
+      "\n\n\n
+       These are the site settings provided, please review and confirm they are correct: 
+       \n Site Name: $site_name 
+       \n Site email address: $site_email
+       \n Administrator username: $username
+       \n Administrator password: $user_password
+       \n);"
+    ));
+    $site_settings  = drush_confirm(dt('Is this information correct?'));
+  }
+  //settings.php input
+  $settings_php = FALSE;
+  while(!$settings_php){
+    drush_print(dt(
+      "\n\n\nNow we need to build the settings.php files \$databases array section. 
+     \n In the end it will look like this:
+     \n \$databases['default']['default'] = array(
+     \n  'driver' => 'pgsql',
+     \n  'database' => 'drupal',
+     \n  'username' => 'admin',
+     \n  'password' => 'password123',
+     \n  'host' => 'localhost',
+     \n   'prefix' => '',
+     \n   'port'=> '5432',
+     \n);"
+    ));
+    $driver = 'pgsql';
+    $database = drush_prompt(dt('\'database\' => '));
+    $postgres_username = drush_prompt(dt('\'username\' =>'));
+    $postgres_password = drush_prompt(dt('\'password\' => '));
+    $host = drush_prompt(dt('\'host\' => '));
+    $port = drush_prompt(dt('\'port\'=> '));
+
+    drush_print(dt(
+      "\n\n\nThis is the database information provided, please review and confirm it is correct: 
+       \n Database name: $database 
+       \n Database username: $postgres_username
+       \n Database user password: $postgres_password
+       \n Database host: $host
+       \n Database port: $port
+       \n);"
+    ));
+    $settings_php  = drush_confirm(dt('Is this information correct?'));
+  }
+
+  //Download and install drupal core then move it up one directory level.
   exec('wget https://www.drupal.org/files/projects/drupal-7.56.tar.gz');
   exec('tar -zxvf drupal-7.56.tar.gz');
   exec('mv drupal-7.56/* ./');
   exec('mv drupal-7.56/.htaccess ./');
 
-  //settings.php input
-  $sitename  = drush_prompt(dt('Name of the site: '));
-  $siteemail  = drush_prompt(dt('Admin email for the site: '));
-  $username  = drush_prompt(dt('Name for your admin user on the site: '));
-  $userpassword  = drush_prompt(dt('Password for the admin user, needs to be complex including numbers and characters, example P@55w0rd: '));
-
-  drush_print(dt(
-    "\n\n\n
-   Now we need to build the settings.php files \$databases array section. 
-   \n In the end it will look like this:
-   \n \$databases['default']['default'] = array(
-   \n  'driver' => 'pgsql',
-   \n  'database' => 'drupal',
-   \n  'username' => 'admin',
-   \n  'password' => 'password123',
-   \n  'host' => '127.0.0.1',
-   \n   'prefix' => '',
-   \n   'port'=> '5433',
-   \n);"
-  ));
-  $driver = 'pgsql';
-  $database = drush_prompt(dt('\'database\' => '));
-  $postgresusername = drush_prompt(dt('\'username\' =>'));
-  $postgrespassword = drush_prompt(dt('\'password\' => '));
-  $host = drush_prompt(dt('\'host\' => '));
-  $port = drush_prompt(dt('\'port\'=> '));
-
+  //Arguments for the Drush site-install command.
   $args = array(
     'standard',
     'install_configure_form.update_status_module=\'array(FALSE,FALSE)\''
   );
+
+  //Options for the Drush site-install command.
   $options = array(
-    '--db-url='. $driver . '://' . $postgresusername . ':' .$postgrespassword .
+    '--db-url='. $driver . '://' . $postgres_username . ':' .$postgres_password .
     '@' .$host. ':' . $port . '/' . $database,
     '--account-name='. $username,
-    '--account-pass='. $userpassword,
-    '--site-mail='. $siteemail,
-    '--site-name='. $sitename
+    '--account-pass='. $user_password,
+    '--site-mail='. $site_email,
+    '--site-name='. $site_name
   );
-
-  drush_set_option('username', $username);
-
   drush_invoke_process('@self', 'si', $args, $options);
-  print_r("\n\n\n Downloading modules.\n");
-  //Download modules
+
+  print_r("\n\n\nDownloading modules.\n");
   $args = array('field_group', 'field_group_table', 'field_formatter_class', 'field_formatter_settings',
     'ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
     'token', 'tripal-7.x-3.0-rc1', 'uuid', 'jquery_update', 'views', 'webform');
   $options = array();
   drush_invoke_process('@self', 'dl', $args, $options);
-  print_r("\n\n\n Enabling modules.\n");
+
+  print_r("\n\n\nEnabling modules.\n");
   $args2 = array('ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
     'token', 'uuid', 'jquery_update', 'views', 'webform', 'field_group',
     'field_group_table', 'field_formatter_class', 'field_formatter_settings',
@@ -123,23 +154,24 @@ function drush_tripal_install_prepare() {
   $options2 = array();
   drush_invoke_process('@self', 'en', $args2, $options2);
 
-  print_r("\n\n\n Applying patches.\n");
+  print_r("\n\n\nApplying patches.\n");
   //apply patches
-  $currentworkingdirectory = getcwd();
+  $current_working_directory = getcwd();
   exec('wget --no-check-certificate https://drupal.org/files/drupal.pgsql-bytea.27.patch');
   exec('patch -p1 < drupal.pgsql-bytea.27.patch');
-  chdir($currentworkingdirectory . "/sites/all/modules/views");
+  chdir($current_working_directory . "/sites/all/modules/views");
   exec('patch -p1 < ../tripal/tripal_chado_views/views-sql-compliant-three-tier-naming-1971160-30.patch');
   chdir('.');
-  print_r("\n\n\n Enabling the Tripal related modules.");
+
+  print_r("\n\n\nEnabling Tripal modules.\n");
   $args3 = array('tripal', 'tripal_chado', 'tripal_ds', 'tripal_ws');
   $options3 = array();
   drush_invoke_process('@self', 'en', $args3, $options3);
 
-  print_r("\n\n\n Clear cache.\n");
+  print_r("\n\n\nClear cache.\n");
   drush_invoke_process("@site", "cc", array("all"), array("verbose"));
 
-  print_r("\n\n\n Now installing Chado.\n");
+  print_r("\n\n\nInstalling Chado.\n");
   $options = array(
     'Install Chado v1.3' => 'Install Chado v1.3',
     'Install Chado v1.2' => 'Install Chado v1.2',
@@ -158,18 +190,17 @@ function drush_tripal_install_prepare() {
       drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal_chado', 'includes/tripal_chado.install'); tripal_chado_load_drush_submit('Install Chado v1.11');"), array());
     }
   }
-
   drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs_install(" . $username . ");"), array());
 
   print_r("\n\n\n Now preparing the site by creating content types.\n");
   drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal_chado', 'includes/setup/tripal_chado.setup'); tripal_chado_prepare_drush_submit();"), array());
-
   drush_invoke_process('@self', 'php-eval', array("module_load_include('inc', 'tripal', 'tripal.drush'); drush_tripal_trp_run_jobs_install(" . $username . ");"), array());
-  print_r("\n\n\n Adding permissions for the administrator to view, edit, create, and delete all the newly created content types.\n");
+
   //Get all the content types and add the permissions.
+  print_r("\n\n\nAdding permissions for the administrator to view, edit, create, and delete all the newly created content types.\n");
   $permissions = array();
   $bundles = array();
-  $conn = pg_pconnect("host=$host dbname=$database user=$postgresusername password=$postgrespassword");
+  $conn = pg_pconnect("host=$host dbname=$database user=$postgres_username password=$postgres_password");
   if (!$conn) {
     echo "An error occurred.\n";
     exit;
