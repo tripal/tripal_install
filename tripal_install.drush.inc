@@ -94,6 +94,7 @@ function drush_tripal_install_install_prepare() {
     $postgres_password = drush_prompt(dt('postgres password'));
     $host = drush_prompt(dt('host, like localhost or 127.0.0.1'));
     $port = drush_prompt(dt('port, usually 5432'));
+    drush_print(dt(""));
     drush_print(dt(
       "This is the database information provided, please review and confirm it is correct: 
        Database name: $database 
@@ -147,7 +148,7 @@ function drush_tripal_install_install_prepare() {
     'views_ui');
   $options2 = array();
   drush_invoke_process('@self', 'en', $args2, $options2);
-  drush_print(dt("\n\n\n"));
+  drush_print(dt("\n"));
   print_r("Applying patches.\n");
   //apply patches
   $current_working_directory = getcwd();
@@ -233,4 +234,3 @@ function drush_tripal_install_install_prepare() {
   drush_print(dt(""));
   drush_print(dt("Installation is now complete. You may navigate to your new site. For more information on using Tripal please see the installation guide on tripal.info."));
 }
-
