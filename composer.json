@@ -1,0 +1,5 @@
+{
+    "require-dev": {
+        "drush/drush": "7"
+    }
+}
