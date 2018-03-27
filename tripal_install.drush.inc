@@ -75,7 +75,7 @@ function tripal_install_drush_command() {
 function drush_tripal_install_install_prepare() {
   $interactive = drush_get_option('interactive', TRUE);
   try {
-    if ($interactive) {
+    if ($interactive === TRUE || $interactive === 1) {
       $settings = tripal_install_get_settings_interactively();
     }
     else {
@@ -223,7 +223,7 @@ function tripal_install_perform_tasks(array $settings) {
   $postgres_username = $settings['postgres_username'];
   $postgres_password = $settings['postgres_password'];
   $host = $settings['host'];
-  $database = ['database'];
+  $database = $settings['database'];
   $port = $settings['port'];
   $username = $settings['username'];
   $user_password = $settings['user_password'];
@@ -254,7 +254,7 @@ function tripal_install_perform_tasks(array $settings) {
   ];
   $install = drush_invoke_process('@self', 'si', $args, $options);
   drush_print(dt(""));
-  if (!$install) {
+  if ($install === FALSE) {
     throw new Exception("An error occurred when attempting to install Drupal.
                           If you would like to try again please remove any files
                           or tables created during this intial installation attempt.");
@@ -282,7 +282,7 @@ function tripal_install_perform_tasks(array $settings) {
   ];
   $options = [];
   $download = drush_invoke_process('@self', 'dl', $args, $options);
-  if($download === false) {
+  if ($download === FALSE) {
     throw new Exception("Unable to download modules.");
   }
   drush_print(dt(""));
@@ -309,7 +309,7 @@ function tripal_install_perform_tasks(array $settings) {
   ];
   $options2 = [];
   $enable = drush_invoke_process('@self', 'en', $args2, $options2);
-  if($enable === false) {
+  if ($enable === FALSE) {
     throw new Exception('Unable to enable modules');
   }
   drush_print(dt("\n"));
@@ -327,7 +327,7 @@ function tripal_install_perform_tasks(array $settings) {
   $options3 = [];
   $tripal = drush_invoke_process('@self', 'en', $args3, $options3);
   drush_print(dt(""));
-  if ($tripal === false) {
+  if ($tripal === FALSE) {
     throw new Exception("An error occurred when attempting to enable Tripal.
                         Please navigate to your new site and finish the 
                         installation process from the 'Install Tripal' section
@@ -337,7 +337,7 @@ function tripal_install_perform_tasks(array $settings) {
   drush_print(dt(""));
   print_r("Clear cache.\n");
   $clear_cache = drush_invoke_process("@site", "cc", ["all"], ["verbose"]);
-  if($clear_cache === false) {
+  if ($clear_cache === FALSE) {
     throw new Exception("Unable to clear the site's cache.");
   }
   drush_print(dt(""));
@@ -352,7 +352,7 @@ function tripal_install_perform_tasks(array $settings) {
     $version = drush_choice($options, dt('Which version of Chado would you like installed?'));
   }
   else {
-    $version = intval(drush_get_option('chado_version', 0));
+    $version = intval(drush_get_option('chado-version', 0));
   }
 
   if ($version) {
@@ -364,10 +364,11 @@ function tripal_install_perform_tasks(array $settings) {
     }
     elseif ($version == 'Install Chado v1.11' || $version === 3) {
       $chado = drush_invoke_process('@self', 'php-eval', ["module_load_include('inc', 'tripal_chado', 'includes/tripal_chado.install'); tripal_chado_load_drush_submit('Install Chado v1.11');"], []);
-    } else {
-      $chado = true;
     }
-    if($chado === false) {
+    else {
+      $chado = TRUE;
+    }
+    if ($chado === FALSE) {
       throw new Exception("Failed to install chado");
     }
   }

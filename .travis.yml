@@ -5,30 +5,24 @@ php:
   - 7.1
   - 7.2
 
-matrix:
-  include:
-    - php: 7.0
-    - php: 7.1
-    - php: 7.2
-
 services:
   - postgresql
 
 before_script:
-  - psql -c 'create database travis_ci_test;' -U postgres
+  - psql -c 'create database travis;' -U postgres
   - psql -c "alter role postgres with password 'dbpass'"
   - composer install
 
 script:
-  - ./vendor/bin/drush --include=. tripal-generic-install \
-                       --interactive=0 \
-                       --site-name="tripal 3 test" \
-                       --site-email="test@example.com" \
-                       --admin-username="admin" \
-                       --admin-password="adminpass" \
-                       --db-name="travis_ci_test" \
-                       --db-host="127.0.0.1" \
-                       --db-port="5432" \
-                       --db-username="postgres" \
-                       --db-password="dbpass" \
+  - ./vendor/bin/drush --include=. tripal-generic-install
+                       --interactive=0
+                       --site-name="tripal 3 test"
+                       --site-email="test@example.com"
+                       --admin-username="admin"
+                       --admin-password="adminpass"
+                       --db-name="travis"
+                       --db-host="127.0.0.1"
+                       --db-port="5432"
+                       --db-username="postgres"
+                       --db-password="dbpass"
                        --chado-version=1
