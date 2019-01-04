@@ -137,7 +137,7 @@ function drush_tripal_install_install_prepare() {
   print_r("Downloading modules.\n");
   $args = array('field_group', 'field_group_table', 'field_formatter_class', 'field_formatter_settings',
     'ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
-    'token', 'tripal-7.x-3.0-rc3', 'uuid', 'jquery_update', 'views', 'webform');
+    'token', 'tripal-7.x-3.0', 'uuid', 'jquery_update', 'views', 'webform');
   $options = array();
   drush_invoke_process('@self', 'dl', $args, $options);
   drush_print(dt(""));
