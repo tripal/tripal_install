@@ -108,10 +108,10 @@ function drush_tripal_install_install_prepare() {
   drush_print(dt(""));
   drush_print(dt("Now installing Drupal.\n"));
   //Download and install drupal core then move it up one directory level.
-  exec('wget https://www.drupal.org/files/projects/drupal-7.59.tar.gz');
-  exec('tar -zxvf drupal-7.59.tar.gz');
-  exec('mv drupal-7.59/* ./');
-  exec('mv drupal-7.59/.htaccess ./');
+  exec('wget https://www.drupal.org/files/projects/drupal-7.61.tar.gz');
+  exec('tar -zxvf drupal-7.61.tar.gz');
+  exec('mv drupal-7.61/* ./');
+  exec('mv drupal-7.61/.htaccess ./');
 
   //Arguments for the Drush site-install command.
   $args = array(
