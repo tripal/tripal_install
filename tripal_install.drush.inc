@@ -108,7 +108,7 @@ function drush_tripal_install_install_prepare() {
   drush_print(dt(""));
   drush_print(dt("Now installing Drupal.\n"));
   //Download and install drupal core then move it up one directory level.
-  exec('wget https://www.drupal.org/files/projects/drupal-7.61.tar.gz');
+  exec('wget https://www.drupal.org/files/projects/drupal-7.69.tar.gz');
   exec('tar -zxvf drupal-7.69.tar.gz');
   exec('mv drupal-7.69/* ./');
   exec('mv drupal-7.69/.htaccess ./');
