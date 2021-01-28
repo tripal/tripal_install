@@ -108,10 +108,10 @@ function drush_tripal_install_install_prepare() {
   drush_print(dt(""));
   drush_print(dt("Now installing Drupal.\n"));
   //Download and install drupal core then move it up one directory level.
-  exec('wget https://www.drupal.org/files/projects/drupal-7.77.tar.gz');
-  exec('tar -zxvf drupal-7.77.tar.gz');
-  exec('mv drupal-7.77/* ./');
-  exec('mv drupal-7.77/.htaccess ./');
+  exec('wget https://www.drupal.org/files/projects/drupal-7.78.tar.gz');
+  exec('tar -zxvf drupal-7.78.tar.gz');
+  exec('mv drupal-7.78/* ./');
+  exec('mv drupal-7.78/.htaccess ./');
 
   //Arguments for the Drush site-install command.
   $args = array(
@@ -137,7 +137,7 @@ function drush_tripal_install_install_prepare() {
   print_r("Downloading modules.\n");
   $args = array('field_group', 'field_group_table', 'field_formatter_class', 'field_formatter_settings',
     'ctools', 'date', 'devel', 'ds', 'link', 'entity', 'libraries', 'redirect',
-    'token', 'tripal-7.x-3.4', 'uuid', 'jquery_update', 'views', 'webform');
+    'token', 'tripal-7.x-3.5', 'uuid', 'jquery_update', 'views', 'webform');
   $options = array();
   drush_invoke_process('@self', 'dl', $args, $options);
   drush_print(dt(""));
